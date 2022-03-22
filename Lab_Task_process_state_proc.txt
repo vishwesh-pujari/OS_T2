@@ -1,0 +1,76 @@
+There is a command called ps. It shows status of processes.
+$ ps    -> shows only the processes associated with the terminal
+ps -eaf   -> shows all running processes
+pid - kernel assigned unique id to process
+ppid - parent pid
+All processes are created using fork+exec. So all processes have child-parent relationship
+
+We will study /proc file system
+
+$ mount | grep proc
+It says that /proc has file system type of proc
+/proc is a virtual file system created by linux kernel. It doesn't exist on hardware. It exists only in kernel data structures.
+
+cd /proc
+ls
+
+Whatever we see in this folder, is a reflection of kernel's data structure. Each number that we can see in this folder is a pid of a process.
+There is a folder for every running process
+pid=1 is for init process.
+Go to the folder corresponding to current bash shell
+
+man proc    - tells us about each file and folder in /proc.
+
+cd /proc
+$ cat cmdline
+$ vi maps
+$ cat environ
+In the maps folder, we have virtual memory mapping
+There is interesting system call about mmap
+
+$ vi status   # very important file (!)
+See the "State" variable in the file
+
+$ ls -l fd
+We can see files named 0,1,2,255
+These are actually soft links or symbolic links
+/dev/pts/2 is the console. Console is the combination of stdin, stdout, stderr.
+
+getpid(): get its own pid
+What happens when program does scanf():
+read system call is made
+Thus process is blocked/made to wait until user types something. The process is sent to a state called Sleeping
+sleep() also makes the process wait.
+
+Child and parent can be scheduled any how. First the parent, then the child, vice versa
+Orphan is a process, whose parent has died.
+Zombie - process that has exited, but its parent hasn't called wait() on it.
+If a parent doesn't call wait, then its return status is saved in the kernel data structures until its parent calls wait() on it. So if a parent doesn't call wait(), then the process has died, but it exists in kernel data structures.
+
+Orphan process - executing process, parent has died
+Zombie Process - Terminated process, parent is not calling wait() on it. Parent may be alive or dead.
+
+grep State status
+
+ps aux
+When parent of a zombie process dies/when process becomes orphan, then init is set as the process's parent. When the computer is booting, the init process does a lot of tasks of setting up GUI, etc. Afterwards the init process just has an infinite loop, and in that infinite loop, it keeps calling wait()
+
+So when we have a zombie process, its parent is made as init, and init will call wait(). So the process will be deleted from the kernel data structures.
+
+goto /proc/[pid]/fd
+This shows us all file descriptors
+do ls -l
+vi fdinfo/3
+
+after close(), kernel cleans up data structure corresponding to the file
+cat cmdline
+
+What are files 0,1,2
+When program starts running, then stdin, stdout is also manipulated through files
+stdin - 0
+stdout - 1
+stderr - 2
+These files are opened by default for our process.
+Call to scanf() is a call to read() with 0 as file descriptor
+
+File descriptor number that we get is the FIRST free descriptor number available.

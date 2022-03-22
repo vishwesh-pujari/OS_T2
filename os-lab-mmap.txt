@@ -1,0 +1,64 @@
+mmap() system call and implementation:
+
+read and write:
+
+char arr[128]
+int fd = open(fname, ...)
+read(fd, arr, 128)
+struct file doesn't have the data of the file. It's just a representative of the file.
+
+sys read(int fd, char x, ...) {
+	pos= curproc()->files[fd].pos;
+	// calculate actual location on disk
+	disk_read(...);
+}
+
+Kernel maintains the data read from the file into a Buffer Cache. This buffer cache is a doubly linked list.
+From the buffer, it copies the data into the arr.
+So there are 2 locations of the file data.
+The next write will write into the buffer cache and not directly into the file.
+Kernel will only write the dirty buffers into the file periodically/after close is called;
+This is called delayed write.
+This buffer cache saves disk-ios.
+
+Unix-Semantics for file access: Semantics means meanings
+If multiple processes are accessing the same file, then last write by any process is visible to all other processes immediately.
+
+There is only ONE buffer cache corresponding to one file. So all processes will use the Buffer cache only!
+Hence the last write done by any process is visible to all processes.
+
+mmap() is another interface to access files:
+It creates mapping betn region of a file and region in the logical layout of the process.
+
+mmap() returns a pointer to the memory region where kernel will load the file. So no read() and write() necessary.
+Use the array directly to read or edit the file. 
+
+MAP_SHARED - means other processes asking for same data from the file will share the memory. However this shared memory is
+representative of a file.
+The shared memory here however is a representative of the file.
+In /proc: the file 'maps' is the actual memory layout of the process.
+This file is a table
+We can see where the heap, libc.so mapped.
+The code of the dynamic loader also need to be mapped.
+
+When vi also opens the file, we can see the modified changes vi is just another process trying to access the same memoryregion.
+munmap() -> removes the mapping.
+
+When a process is loaded, kernel maps code, data, stacjk into the page table.
+map() happpens according to a page.
+The free memory available in a process, is used by kernel and map it into the page table.
+Kernel does lazy writing. I
+
+After read() file position changes.
+
+If we access same file using both mmap() and read(), write(), then the file will exist in 2 places in the kernel data structures.
+One in the Buffer cache and one in the memory mapped region.
+Data structure of mmap is a page table.
+Data structure of read(), write() is a buffer cache.
+
+So Now how do we guarantee Unix Semantics??
+How does Linux solve the problem -> The read() and write() now don't go through the buffer cache. They go through the mmap.
+The mapping is done in the kernel data structures.
+
+So, the buffer cache is no longer present in linux for read() and write().
+LAb task: Write programs mixing mmap() and read() and write() and convince urself that Unix semantics are followed.
